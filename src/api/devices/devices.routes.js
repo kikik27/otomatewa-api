@@ -54,30 +54,60 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.post('/send-message', async (req, res) => {
-  const { deviceId, number, message } = req.body;
+router.post('/send-message', [
+  check('deviceId').notEmpty(),
+  check('target').notEmpty(),
+  check('message').notEmpty(),
+], async (req, res) => {
+  const { deviceId, target, message } = req.body;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const device = Clients.find((client) => client.options.authStrategy.clientId === deviceId);
 
   if (!device) {
-    return res.status(400).json({ success: false, message: 'device not found' });
+    return res.status(400).json({ success: false, message: 'Device not found' });
   }
 
   try {
-    const chatId = `${number}@c.us`;
-    await device.sendMessage(chatId, message);
-    res.status(200).json({ success: true, message: 'Message sent successfully' });
+    if (Array.isArray(target)) {
+      // If target is an array, send message to each target
+      const sendMessages = target.map(async (t) => {
+        await device.sendMessage(t, message);
+      });
+      // Wait for all messages to be sent
+      await Promise.all(sendMessages);
+    } else {
+      // If target is a single string, send a single message
+      await device.sendMessage(target, message);
+    }
+
+    res.status(200).json({ success: true, message: 'Message(s) sent successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to send message', error });
   }
 });
 
-router.post('/send-media', upload.single('file'), async (req, res) => {
-  const { deviceId, number, caption } = req.body;
+router.post('/send-media', upload.single('file'), [
+  check('deviceId').notEmpty(),
+  check('target').notEmpty(),
+  check('caption').notEmpty(), // Ganti 'message' dengan 'caption' karena kita mengirim media dengan caption
+], async (req, res) => {
+  const { deviceId, target, caption } = req.body;
   const file = req.file;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const device = Clients.find((client) => client.options.authStrategy.clientId === deviceId);
 
   if (!device) {
-    return res.status(400).json({ success: false, message: 'device not found' });
+    return res.status(400).json({ success: false, message: 'Device not found' });
   }
 
   if (!file) {
@@ -85,12 +115,47 @@ router.post('/send-media', upload.single('file'), async (req, res) => {
   }
 
   try {
-    const chatId = `${number}@c.us`;
+    // Ensure target is an array
+    const targets = Array.isArray(target) ? target : [target];
+
+    // Prepare media object
     const media = new MessageMedia(file.mimetype, file.buffer.toString('base64'), file.originalname);
-    await device.sendMessage(chatId, media, { caption });
+
+    // Send media to each target
+    const sendMediaMessages = targets.map(async (t) => {
+      await device.sendMessage(t, media, { caption });
+    });
+
+    // Wait for all media messages to be sent
+    await Promise.all(sendMediaMessages);
+
     res.status(200).json({ success: true, message: 'Media sent successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to send media', error });
+  }
+});
+
+router.post('/chats', [
+  check('deviceId').notEmpty(),
+], async (req, res) => {
+  const { deviceId } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const device = Clients.find((client) => client.options.authStrategy.clientId === deviceId);
+
+  if (!device) {
+    return res.status(400).json({ success: false, message: 'Device not found' });
+  }
+
+  try {
+    const chats = await device.getChats();
+    const data = chats.filter((chat) => chat.isGroup);
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to get chats', error });
   }
 });
 
