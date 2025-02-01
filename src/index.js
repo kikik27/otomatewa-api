@@ -7,3 +7,10 @@ app.listen(port, () => {
   console.log(`Listening: http://localhost:${port}`);
   /* eslint-enable no-console */
 });
+
+// Tambahkan ini sebelum middlewares.notFound
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to the API'
+  });
+});
