@@ -8,8 +8,7 @@ const { MessageMedia } = require('whatsapp-web.js');
 const multer = require('multer');
 const express = require('express');
 const { isAuthenticated } = require('../../middlewares');
-const { getDevices, createDevice, generateQrCode } = require('./devices.services');
-const { Clients } = require('./devices.clients');
+const { getDevices, createDevice, generateQrCode, getClientDevice } = require('./devices.services');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -66,7 +65,7 @@ router.post('/send-message', isAuthenticated, [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const device = Clients.find((client) => client.options.authStrategy.clientId === deviceId);
+  const device = await getClientDevice(deviceId);
 
   if (!device) {
     return res.status(400).json({ success: false, message: 'Device not found' });
@@ -97,6 +96,7 @@ router.post('/send-media', isAuthenticated, upload.single('file'), [
   check('caption').notEmpty(), // Ganti 'message' dengan 'caption' karena kita mengirim media dengan caption
 ], async (req, res) => {
   const { deviceId, target, caption } = req.body;
+  console.log(req.body);
   const file = req.file;
 
   const errors = validationResult(req);
@@ -104,8 +104,7 @@ router.post('/send-media', isAuthenticated, upload.single('file'), [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const device = Clients.find((client) => client.options.authStrategy.clientId === deviceId);
-
+  const device = await getClientDevice(deviceId);
   if (!device) {
     return res.status(400).json({ success: false, message: 'Device not found' });
   }
@@ -118,11 +117,26 @@ router.post('/send-media', isAuthenticated, upload.single('file'), [
     // Ensure target is an array
     const targets = Array.isArray(target) ? target : [target];
 
+    // Format phone numbers
+    const formattedTargets = targets.map(number => {
+      // Convert to string to ensure we can use string methods
+      const strNumber = String(number);
+
+      // If number starts with '08', replace with '62'
+      if (strNumber.startsWith('08')) {
+        return '628' + strNumber.slice(2);
+      }
+      // If it doesn't start with '628', leave as is
+      return strNumber;
+    });
+
+    console.log(formattedTargets);
+
     // Prepare media object
     const media = new MessageMedia(file.mimetype, file.buffer.toString('base64'), file.originalname);
 
-    // Send media to each target
-    const sendMediaMessages = targets.map(async (t) => {
+    // Send media to each formatted target
+    const sendMediaMessages = formattedTargets.map(async (t) => {
       await device.sendMessage(t, media, { caption });
     });
 
@@ -149,12 +163,7 @@ router.post('/chats', isAuthenticated, [
   // return;
   // Resolve semua Promise dalam Clients terlebih dahulu
 
-  const resolvedClients = await Promise.all(Clients);
-  const device = resolvedClients.find((client) => client.authStrategy.clientId === deviceId);
-
-  if (!device) {
-    return res.status(400).json({ success: false, message: 'Device not found' });
-  }
+  const device = await getClientDevice(deviceId);
 
   try {
     const chats = await device.getChats();

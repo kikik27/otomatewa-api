@@ -20,6 +20,8 @@ function errorHandler(err, req, res, next) {
 function isAuthenticated(req, res, next) {
   const { authorization } = req.headers;
 
+  // console.log(req.body);
+
   if (!authorization) {
     res.status(401);
     throw new Error('🚫 Un-Authorized 🚫');

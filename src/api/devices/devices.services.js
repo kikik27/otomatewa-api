@@ -3,6 +3,20 @@
 const qrcode = require('qrcode');
 const { db } = require('../../utils/db');
 const { initializeClient, sessions, saveSessions } = require('./devices.clients');
+const { Clients } = require('./devices.clients');
+
+async function getClientDevice(deviceId) {
+  const resolvedClients = await Promise.all(Clients);
+  const device = resolvedClients.find((client) => client.authStrategy.clientId === deviceId);
+
+  if (!device) {
+    const error = new Error('Device not found');
+    error.status = 404;
+    throw error;
+  }
+  
+  return device;
+}
 
 async function createDevice(data) {
   const device = await db.device.create({
@@ -104,4 +118,5 @@ module.exports = {
   setDeviceQr,
   getDevices,
   generateQrCode,
+  getClientDevice
 };
