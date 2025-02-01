@@ -54,7 +54,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.post('/send-message', [
+router.post('/send-message', isAuthenticated, [
   check('deviceId').notEmpty(),
   check('target').notEmpty(),
   check('message').notEmpty(),
@@ -91,7 +91,7 @@ router.post('/send-message', [
   }
 });
 
-router.post('/send-media', upload.single('file'), [
+router.post('/send-media', isAuthenticated, upload.single('file'), [
   check('deviceId').notEmpty(),
   check('target').notEmpty(),
   check('caption').notEmpty(), // Ganti 'message' dengan 'caption' karena kita mengirim media dengan caption
@@ -135,7 +135,7 @@ router.post('/send-media', upload.single('file'), [
   }
 });
 
-router.post('/chats', [
+router.post('/chats', isAuthenticated, [
   check('deviceId').notEmpty(),
 ], async (req, res) => {
   const { deviceId } = req.body;
@@ -143,7 +143,14 @@ router.post('/chats', [
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  const device = Clients.find((client) => client.options.authStrategy.clientId === deviceId);
+  // await Clients.map((client)=> {
+  //   console.log(client)
+  // });
+  // return;
+  // Resolve semua Promise dalam Clients terlebih dahulu
+
+  const resolvedClients = await Promise.all(Clients);
+  const device = resolvedClients.find((client) => client.authStrategy.clientId === deviceId);
 
   if (!device) {
     return res.status(400).json({ success: false, message: 'Device not found' });
@@ -151,23 +158,22 @@ router.post('/chats', [
 
   try {
     const chats = await device.getChats();
-    const data = chats.filter((chat) => chat.isGroup);
+    // const data = chats;
 
-    res.status(200).json({ success: true, data });
+    res.status(200).json({ success: true, chats });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to get chats', error });
   }
 });
 
-router.post('/qr-code', async (req, res) => {
-  const { deviceId } = req.body;
-
+router.post('/qr-code', isAuthenticated, async (req, res) => {
+  const { device_id } = req.body;
   try {
-    const qrCodeBuffer = await generateQrCode(deviceId);
+    const qrCodeBuffer = await generateQrCode(device_id);
     res.setHeader('Content-Type', 'image/png');
     res.send(qrCodeBuffer);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to generate QR code', error });
+    res.status(error.status).json({ success: false, message: error.message });
   }
 });
 

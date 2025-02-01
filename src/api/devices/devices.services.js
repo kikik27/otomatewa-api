@@ -10,7 +10,7 @@ async function createDevice(data) {
   });
   sessions.push({ id: device.id, name: device.name, data: {} });
   saveSessions();
-  initializeClient(device.id, device.name);
+  initializeClient(device.id);
   return device;
 }
 
@@ -48,8 +48,16 @@ async function getAllDevices() {
 
 async function generateQrCode(deviceId) {
   const device = await findDeviceById(deviceId);
+
+  if (device.status) {
+    const error = new Error('Device is active');
+    error.status = 400;
+    throw error;
+  }
+
   const qrCodeBuffer = qrcode.toBuffer(device.code);
   return qrCodeBuffer;
+  const error = new Error('Device not found');
 }
 
 async function getDevices({
