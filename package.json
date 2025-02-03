@@ -4,7 +4,8 @@
   "description": "A basic starter for an express.js API",
   "main": "index.js",
   "scripts": {
-    "postinstall": "npm install && prisma generate",
+    "postinstall": "prisma generate",
+    "vercel-build": "npm install",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "lint": "eslint --fix src",
