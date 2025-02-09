@@ -72,7 +72,6 @@ typings/
 # Serverless directories
 .serverless
 
-# .sessions/
+.sessions/
 .wwebjs_auth/
 .vercel
-  
