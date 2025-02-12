@@ -62,9 +62,6 @@ async function getAllDevices() {
 
 async function generateQrCode(deviceId) {
   const device = await findDeviceById(deviceId);
-
-  console.log(device)
-
   if (!device) {
     const error = new Error('Device not found');
     error.status = 404; // Tambahkan status code untuk error ini
@@ -76,6 +73,8 @@ async function generateQrCode(deviceId) {
     error.status = 400; // Bad Request
     throw error;
   }
+  const qrCodeBuffer = await qrcode.toBuffer(device.code); // Tambahkan await
+  return qrCodeBuffer;
 }
 
 async function getDevices({

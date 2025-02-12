@@ -185,7 +185,7 @@ router.post('/qr-code', isAuthenticated, async (req, res) => {
   try {
     const qrCodeBuffer = await generateQrCode(deviceId);
     res.setHeader('Content-Type', 'image/png');
-    res.send(qrCodeBuffer);
+    res.end(qrCodeBuffer);
   } catch (error) {
     const statusCode = error.status || 500; // Gunakan 500 jika error.status undefined
     res.status(statusCode).json({ success: false, message: error.message });
