@@ -176,13 +176,14 @@ router.post('/chats', isAuthenticated, [
 });
 
 router.post('/qr-code', isAuthenticated, async (req, res) => {
-  const { device_id } = req.body;
+  const { deviceId } = req.body;
   try {
-    const qrCodeBuffer = await generateQrCode(device_id);
+    const qrCodeBuffer = await generateQrCode(deviceId);
     res.setHeader('Content-Type', 'image/png');
     res.send(qrCodeBuffer);
   } catch (error) {
-    res.status(error.status).json({ success: false, message: error.message });
+    const statusCode = error.status || 500; // Gunakan 500 jika error.status undefined
+    res.status(statusCode).json({ success: false, message: error.message });
   }
 });
 
