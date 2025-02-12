@@ -103,17 +103,14 @@ router.post('/send-media', isAuthenticated, upload.single('file'), [
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
-  const device = await getClientDevice(deviceId);
-  if (!device) {
-    return res.status(400).json({ success: false, message: 'Device not found' });
-  }
-
+  
+  
   if (!file) {
     return res.status(400).json({ success: false, message: 'No file uploaded' });
   }
-
+  
   try {
+    const device = await getClientDevice(deviceId);
     // Ensure target is an array
     const targets = Array.isArray(target) ? target : [target];
 
@@ -157,11 +154,6 @@ router.post('/chats', isAuthenticated, [
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  // await Clients.map((client)=> {
-  //   console.log(client)
-  // });
-  // return;
-  // Resolve semua Promise dalam Clients terlebih dahulu
 
   const device = await getClientDevice(deviceId);
 
