@@ -177,6 +177,11 @@ router.post('/chats', isAuthenticated, [
 
 router.post('/qr-code', isAuthenticated, async (req, res) => {
   const { deviceId } = req.body;
+
+  if (!deviceId) {
+    return res.status(400).json({ success: false, message: 'Device ID is required' });
+  }
+  
   try {
     const qrCodeBuffer = await generateQrCode(deviceId);
     res.setHeader('Content-Type', 'image/png');
