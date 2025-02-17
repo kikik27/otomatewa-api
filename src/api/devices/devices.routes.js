@@ -159,8 +159,6 @@ router.post('/chats', isAuthenticated, [
 
   try {
     const chats = await device.getChats();
-    // const data = chats;
-
     res.status(200).json({ success: true, chats });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to get chats', error });

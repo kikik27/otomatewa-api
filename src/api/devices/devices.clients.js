@@ -103,6 +103,10 @@ async function initializeClient(deviceId) {
       });
     });
 
+    client.on("message", async (message) => {
+      console.log(message);
+    })
+
     client.initialize();
     return client;
 
