@@ -104,7 +104,9 @@ async function initializeClient(deviceId) {
     });
 
     client.on("message", async (message) => {
-      console.log(message);
+      console.log(message.id.remote);
+      console.log(message.body)
+      console.log(message.type)
     })
 
     client.initialize();
