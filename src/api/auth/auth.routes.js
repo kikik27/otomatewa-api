@@ -20,6 +20,54 @@ const {
 const { hashToken } = require('../../utils/hashTokens');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: User's full name
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 30
+ *                 description: User's password (6-30 characters)
+ *                 example: "password123"
+ *     responses:
+ *       200:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Bad request (validation error or email already exists)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/register', [
   check('email').isEmail().withMessage('Invalid email address'),
   check('name').notEmpty(),
@@ -54,10 +102,57 @@ router.post('/register', [
     next(err);
   }
 });
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 description: User's password
+ *                 example: "password123"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Bad request (validation error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/login', [
   check('email').isEmail().withMessage('Invalid email address'),
   check('password').isLength({ min: 6, max: 30 }).withMessage('Password must be between 6 and 30 characters'),
-// eslint-disable-next-line consistent-return
+  // eslint-disable-next-line consistent-return
 ], async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -93,6 +188,47 @@ router.post('/login', [
     next(err);
   }
 });
+
+/**
+ * @swagger
+ * /auth/refreshToken:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Valid refresh token
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Missing refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized (invalid or revoked token)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 
 router.post('/refreshToken', async (req, res, next) => {
   try {
@@ -135,6 +271,39 @@ router.post('/refreshToken', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/revokeRefreshTokens:
+ *   post:
+ *     summary: Revoke all refresh tokens for a user
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: User ID whose tokens should be revoked
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *     responses:
+ *       200:
+ *         description: Tokens revoked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Tokens revoked for user with id #123e4567-e89b-12d3-a456-426614174000"
+ */
+
 // This endpoint is only for demo purpose.
 // Move this logic where you need to revoke the tokens( for ex, on password reset)
 router.post('/revokeRefreshTokens', async (req, res, next) => {
@@ -147,6 +316,28 @@ router.post('/revokeRefreshTokens', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/profile:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized (invalid or missing token)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/profile', isAuthenticated, async (req, res, next) => {
   try {
     const { userId } = req.payload;

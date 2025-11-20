@@ -15,6 +15,75 @@ const upload = multer({ storage });
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /devices:
+ *   get:
+ *     summary: Get all devices with pagination and filters
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: boolean
+ *         description: Filter by device status
+ *         example: true
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Number of items per page
+ *         example: 10
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter by device name
+ *         example: "Device 1"
+ *     responses:
+ *       200:
+ *         description: Devices retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Device'
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of devices
+ *                 page:
+ *                   type: integer
+ *                   description: Current page
+ *                 pageSize:
+ *                   type: integer
+ *                   description: Items per page
+ *       400:
+ *         description: Bad request (validation error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/', isAuthenticated, [
   check('status').optional().isBoolean(),
   check('page').optional().isInt({ min: 1 }),
@@ -43,6 +112,47 @@ router.get('/', isAuthenticated, [
   }
 });
 
+/**
+ * @swagger
+ * /devices:
+ *   post:
+ *     summary: Create a new device
+ *     tags: [Devices]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Device name
+ *                 example: "WhatsApp Device 1"
+ *               status:
+ *                 type: boolean
+ *                 description: Device status
+ *                 example: false
+ *               code:
+ *                 type: string
+ *                 description: Device code
+ *                 example: "DEVICE001"
+ *     responses:
+ *       200:
+ *         description: Device created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Device'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/', async (req, res, next) => {
   try {
     const { name, status, code } = req.body;
@@ -53,6 +163,70 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /devices/send-message:
+ *   post:
+ *     summary: Send WhatsApp message
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *               - target
+ *               - message
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *                 description: Device ID to send message from
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *               target:
+ *                 oneOf:
+ *                   - type: string
+ *                     description: Single phone number
+ *                     example: "6281234567890"
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *                     description: Array of phone numbers
+ *                     example: ["6281234567890", "6289876543210"]
+ *               message:
+ *                 type: string
+ *                 description: Message text to send
+ *                 example: "Hello from WhatsApp API!"
+ *     responses:
+ *       200:
+ *         description: Message sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Message(s) sent successfully"
+ *       400:
+ *         description: Bad request (validation error or device not found)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Failed to send message
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/send-message', isAuthenticated, [
   check('deviceId').notEmpty(),
   check('target').notEmpty(),
@@ -90,6 +264,75 @@ router.post('/send-message', isAuthenticated, [
   }
 });
 
+/**
+ * @swagger
+ * /devices/send-media:
+ *   post:
+ *     summary: Send WhatsApp media (image, video, document)
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *               - target
+ *               - caption
+ *               - file
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *                 description: Device ID to send media from
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *               target:
+ *                 oneOf:
+ *                   - type: string
+ *                     description: Single phone number
+ *                     example: "6281234567890"
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *                     description: Array of phone numbers
+ *                     example: ["6281234567890", "6289876543210"]
+ *               caption:
+ *                 type: string
+ *                 description: Caption for the media
+ *                 example: "Check this image!"
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Media file to send
+ *     responses:
+ *       200:
+ *         description: Media sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Media sent successfully"
+ *       400:
+ *         description: Bad request (validation error, device not found, or no file uploaded)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Failed to send media
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/send-media', isAuthenticated, upload.single('file'), [
   check('deviceId').notEmpty(),
   check('target').notEmpty(),
@@ -103,12 +346,12 @@ router.post('/send-media', isAuthenticated, upload.single('file'), [
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  
-  
+
+
   if (!file) {
     return res.status(400).json({ success: false, message: 'No file uploaded' });
   }
-  
+
   try {
     const device = await getClientDevice(deviceId);
     // Ensure target is an array
@@ -146,6 +389,56 @@ router.post('/send-media', isAuthenticated, upload.single('file'), [
   }
 });
 
+/**
+ * @swagger
+ * /devices/chats:
+ *   post:
+ *     summary: Get all chats from a device
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *                 description: Device ID to get chats from
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *     responses:
+ *       200:
+ *         description: Chats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 chats:
+ *                   type: array
+ *                   description: Array of chat objects
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Bad request (validation error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Failed to get chats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/chats', isAuthenticated, [
   check('deviceId').notEmpty(),
 ], async (req, res) => {
@@ -165,13 +458,55 @@ router.post('/chats', isAuthenticated, [
   }
 });
 
+/**
+ * @swagger
+ * /devices/qr-code:
+ *   post:
+ *     summary: Generate QR code for device authentication
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *                 description: Device ID to generate QR code for
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *     responses:
+ *       200:
+ *         description: QR code generated successfully
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Bad request (Device ID is required)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Failed to generate QR code
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/qr-code', isAuthenticated, async (req, res) => {
   const { deviceId } = req.body;
 
   if (!deviceId) {
     return res.status(400).json({ success: false, message: 'Device ID is required' });
   }
-  
+
   try {
     const qrCodeBuffer = await generateQrCode(deviceId);
     res.setHeader('Content-Type', 'image/png');
