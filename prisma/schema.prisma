@@ -37,7 +37,7 @@ model Device {
   id      String    @id @unique @default(uuid())
   name    String
   status  Boolean   @default(false)
-  code    String?   @db.Text
+  code    String?
   history History[]
 }
 
@@ -56,7 +56,7 @@ model Group {
 
 model History {
   id            String          @id @unique @default(uuid())
-  message       String          @db.Text
+  message       String
   deviceId      String
   Device        Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   detailHistory DetailHistory[]
